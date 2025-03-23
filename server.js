@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const https = require("https");
+const cheerio = require("cheerio"); // For scraping
 require("dotenv").config();
 
 const app = express();
@@ -25,21 +26,32 @@ app.get("/anime", async (req, res) => {
 
     try {
         const response = await axios.get(url, { httpsAgent });
-        const data = response.data;
+        const html = response.data;
 
-        if (data.servers && Array.isArray(data.servers)) {
-            res.json({
-                animeId: id,
-                season: s,
-                episode: ep,
-                servers: data.servers.map(server => ({
-                    name: server.name,
-                    url: server.url,
-                })),
-            });
-        } else {
-            res.json({ message: "No servers found", animeId: id, season: s, episode: ep });
-        }
+        // Load HTML into cheerio
+        const $ = cheerio.load(html);
+
+        // Extract video iframe URL
+        const iframeSrc = $("#videoFrame").attr("src") || null;
+
+        // Extract available servers
+        const servers = [];
+        $(".modal-option").each((_, el) => {
+            const serverName = $(el).text().trim();
+            const serverUrl = $(el).attr("data-link");
+            if (serverName && serverUrl) {
+                servers.push({ name: serverName, url: serverUrl });
+            }
+        });
+
+        res.json({
+            animeId: id,
+            season: s,
+            episode: ep,
+            iframeUrl: iframeSrc,
+            servers
+        });
+
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch anime data", details: error.message });
     }
@@ -48,4 +60,3 @@ app.get("/anime", async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
-                
