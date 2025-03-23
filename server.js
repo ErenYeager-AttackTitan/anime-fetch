@@ -2,7 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 const https = require("https");
-const cheerio = require("cheerio"); // For scraping
+const cheerio = require("cheerio");
 require("dotenv").config();
 
 const app = express();
@@ -28,19 +28,19 @@ app.get("/anime", async (req, res) => {
         const response = await axios.get(url, { httpsAgent });
         const html = response.data;
 
-        // Load HTML into cheerio
+        // Load HTML into Cheerio
         const $ = cheerio.load(html);
 
-        // Extract video iframe URL
-        const iframeSrc = $("#videoFrame").attr("src") || null;
+        // Extract iframe URL
+        const iframeUrl = $("#videoFrame").attr("src") || null;
 
         // Extract available servers
         const servers = [];
-        $(".modal-option").each((_, el) => {
-            const serverName = $(el).text().trim();
+        $(".modal-option").each((i, el) => {
+            const name = $(el).text().trim();
             const serverUrl = $(el).attr("data-link");
-            if (serverName && serverUrl) {
-                servers.push({ name: serverName, url: serverUrl });
+            if (name && serverUrl) {
+                servers.push({ name, url: serverUrl });
             }
         });
 
@@ -48,8 +48,8 @@ app.get("/anime", async (req, res) => {
             animeId: id,
             season: s,
             episode: ep,
-            iframeUrl: iframeSrc,
-            servers
+            iframeUrl: iframeUrl,
+            servers: servers
         });
 
     } catch (error) {
